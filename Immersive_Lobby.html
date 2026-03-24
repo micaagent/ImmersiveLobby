@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiCA | Event Lobby</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background: linear-gradient(-45deg, #0f172a, #000000, #1e1b4b);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #ffffff; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .floating-word {
+            position: absolute;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.08);
+            animation: floatUp 8s linear forwards;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0.8); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Typography Clamp to ensure it never breaks on tablets */
+        .time-number { font-size: clamp(2.5rem, 5vw + 1rem, 6rem); line-height: 1; }
+        .time-colon { font-size: clamp(2rem, 4vw + 1rem, 5rem); line-height: 1; padding: 0 2vw; }
+        .time-label { font-size: clamp(0.6rem, 1vw + 0.4rem, 0.85rem); }
+    </style>
+</head>
+<body class="min-h-screen w-full flex flex-col items-center justify-center relative p-4 sm:p-8">
+
+    <!-- Background Word Cloud -->
+    <div id="word-cloud" class="absolute inset-0 z-0 overflow-hidden pointer-events-none"></div>
+
+    <!-- Main Foreground -->
+    <div class="z-10 text-center glass-panel p-8 sm:p-12 md:p-16 lg:p-24 rounded-3xl w-full max-w-6xl shadow-2xl flex flex-col items-center">
+        
+        <div class="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold uppercase tracking-widest mb-6 sm:mb-8 text-blue-300">
+            Live Lobby Open
+        </div>
+        
+        <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tighter mb-8 md:mb-12">
+            The event begins in
+        </h1>
+
+        <!-- RESPONSIVE COUNTDOWN -->
+        <div class="flex items-center justify-center w-full my-4 md:my-8 flex-nowrap">
+            
+            <div class="flex flex-col items-center w-1/4 max-w-[140px]">
+                <span id="days" class="time-number font-black tabular-nums tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">00</span>
+                <span class="time-label uppercase tracking-widest text-gray-500 mt-2 sm:mt-4">Days</span>
+            </div>
+            
+            <span class="time-colon font-black text-gray-700">:</span>
+            
+            <div class="flex flex-col items-center w-1/4 max-w-[140px]">
+                <span id="hours" class="time-number font-black tabular-nums tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">00</span>
+                <span class="time-label uppercase tracking-widest text-gray-500 mt-2 sm:mt-4">Hours</span>
+            </div>
+            
+            <span class="time-colon font-black text-gray-700">:</span>
+            
+            <div class="flex flex-col items-center w-1/4 max-w-[140px]">
+                <span id="minutes" class="time-number font-black tabular-nums tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">00</span>
+                <span class="time-label uppercase tracking-widest text-gray-500 mt-2 sm:mt-4">Mins</span>
+            </div>
+            
+            <span class="time-colon font-black text-gray-700">:</span>
+            
+            <div class="flex flex-col items-center w-1/4 max-w-[140px]">
+                <span id="seconds" class="time-number font-black tabular-nums tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">00</span>
+                <span class="time-label uppercase tracking-widest text-gray-500 mt-2 sm:mt-4">Secs</span>
+            </div>
+
+        </div>
+
+        <p class="text-gray-400 text-base sm:text-lg md:text-xl mt-8 md:mt-12 mb-8">
+            Please keep this tab open. The stream will initialize automatically.
+        </p>
+
+        <!-- TRACKED BUTTON -->
+        <button id="notifyBtn" onclick="handleNotifyClick()" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full px-8 py-3 text-sm font-semibold tracking-wide transition-all">
+            🔔 Enable Audio Alerts
+        </button>
+    </div>
+
+    <script>
+        // --- DATA CAPTURE LOGIC ---
+        function captureResponse(actionName) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userEmail = urlParams.get('email') || '{{ email }}' || 'anonymous';
+
+            fetch('https://formspree.io/f/YOUR_ENDPOINT_ID', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: userEmail, 
+                    action: actionName,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(err => console.error(err));
+        }
+
+        function handleNotifyClick() {
+            captureResponse('Clicked_Enable_Audio_Alerts');
+            const btn = document.getElementById('notifyBtn');
+            btn.innerHTML = '✅ Alerts Enabled';
+            btn.classList.add('bg-green-500/20', 'border-green-500/50', 'text-green-300');
+            btn.classList.remove('bg-white/10', 'hover:bg-white/20');
+        }
+
+        // --- COUNTDOWN LOGIC (Includes Days to 28th Mar 2026, 9:00 AM IST) ---
+        const eventDate = new Date('2026-03-28T09:00:00+05:30').getTime();
+
+        const x = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = eventDate - now;
+
+            if (distance < 0) {
+                clearInterval(x);
+                document.getElementById("days").innerHTML = "00";
+                document.getElementById("hours").innerHTML = "00";
+                document.getElementById("minutes").innerHTML = "00";
+                document.getElementById("seconds").innerHTML = "00";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerHTML = days.toString().padStart(2, '0');
+            document.getElementById("hours").innerHTML = hours.toString().padStart(2, '0');
+            document.getElementById("minutes").innerHTML = minutes.toString().padStart(2, '0');
+            document.getElementById("seconds").innerHTML = seconds.toString().padStart(2, '0');
+        }, 1000);
+
+        // --- AMBIENT WORD CLOUD LOGIC ---
+        const words = ["Automation", "Instagram Reels", "Content Velocity", "MiCA Engine", "Omnichannel", "Zero Friction", "Scale", "AI Generation", "WhatsApp Blasts", "Intelligence"];
+        const cloudContainer = document.getElementById('word-cloud');
+
+        function createFloatingWord() {
+            const el = document.createElement('div');
+            el.className = 'floating-word';
+            el.innerText = words[Math.floor(Math.random() * words.length)];
+            
+            el.style.left = Math.random() * 100 + 'vw';
+            const size = Math.random() * 2 + 1; 
+            el.style.fontSize = size + 'rem';
+            el.style.animationDuration = (Math.random() * 5 + 8) + 's'; 
+            
+            cloudContainer.appendChild(el);
+            setTimeout(() => el.remove(), 13000);
+        }
+
+        setInterval(createFloatingWord, 1500);
+    </script>
+</body>
+</html>
